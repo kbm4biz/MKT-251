@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حقيبة تدريبية تفاعلية: تطبيقات تسويقية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: تم تصميم التطبيق كهيكل من صفحة واحدة (SPA) مع شريط تنقل علوي للوصول السريع للوحدات الرئيسية (التنبؤ، التخطيط، الحصة السوقية، قواعد البيانات). عند اختيار وحدة، يتم عرض مواضيعها الفرعية كبطاقات تفاعلية. النقر على بطاقة موضوع يعرض محتواه في منطقة عرض رئيسية مقسمة إلى تبويبات (شرح نظري، تطبيق تفاعلي، أسئلة وأجوبة). تم اختيار هذا الهيكل لتحويل المادة التعليمية الخطية إلى تجربة استكشافية وتفاعلية، مما يسمح للمستخدم بالتعلم بالممارسة بدلاً من القراءة السلبية. -->
+    <!-- Visualization & Content Choices: 
+        - التنبؤ والتخطيط: Goal=التعلم والتطبيق -> Viz=آلة حاسبة تفاعلية مع مخطط خطي/شريطي ديناميكي -> Interaction=إدخال بيانات ورؤية النتائج والرسوم البيانية تتحدث فورياً -> Justification=تعزيز الفهم العملي للمعادلات -> Library=Chart.js.
+        - الحصة السوقية: Goal=المقارنة -> Viz=مخطط دائري للحصة العامة وشريطي للنسبية -> Interaction=تحديث المخططات عند إدخال بيانات المبيعات -> Justification=توضيح مرئي للموقف التنافسي -> Library=Chart.js.
+        - قواعد البيانات: Goal=الشرح الإجرائي -> Viz=رسوم تخطيطية مبنية بـHTML/CSS لتوضيح هياكل الجداول والعلاقات -> Interaction=تمييز المفاتيح عند المرور فوقها، خطوات إرشادية متتابعة -> Justification=تبسيط المفاهيم المجردة والعمليات المعقدة -> Library=HTML/CSS/JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tab-button.active {
+            border-color: #0d9488;
+            color: #0d9488;
+            font-weight: 700;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-stone-50 text-slate-800" x-data="trainingApp()">
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-teal-700">التطبيقات التسويقية التفاعلية</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4 space-x-reverse">
+                        <template x-for="unit in units" :key="unit.id">
+                            <button @click="setActiveUnit(unit.id)"
+                                :class="{'bg-teal-600 text-white': activeUnitId === unit.id, 'text-slate-600 hover:bg-teal-500 hover:text-white': activeUnitId !== unit.id}"
+                                class="px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                                x-text="unit.title"></button>
+                        </template>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 hover:text-white hover:bg-teal-600 focus:outline-none">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path :class="{'hidden': mobileMenuOpen, 'inline-flex': !mobileMenuOpen }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            <path :class="{'hidden': !mobileMenuOpen, 'inline-flex': mobileMenuOpen }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div x-show="mobileMenuOpen" x-cloak class="md:hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <template x-for="unit in units" :key="unit.id">
+                        <button @click="setActiveUnit(unit.id); mobileMenuOpen = false;"
+                            :class="{'bg-teal-600 text-white': activeUnitId === unit.id, 'text-slate-600 hover:bg-teal-500 hover:text-white': activeUnitId !== unit.id}"
+                            class="w-full text-right block px-3 py-2 rounded-md text-base font-medium transition-colors duration-300"
+                            x-text="unit.title"></button>
+                    </template>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div x-show="activeUnitId">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-teal-800 mb-2" x-text="getActiveUnit().title"></h1>
+                <p class="text-slate-600 max-w-2xl mx-auto" x-text="getActiveUnit().description"></p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                <template x-for="topic in getActiveUnit().topics" :key="topic.id">
+                    <button @click="setActiveTopic(topic.id)" 
+                        :class="{'ring-2 ring-offset-2 ring-teal-500 bg-teal-50 text-teal-800': activeTopicId === topic.id, 'bg-white hover:bg-stone-100': activeTopicId !== topic.id}"
+                        class="p-4 rounded-lg shadow-sm text-center transition-all duration-300 transform hover:scale-105">
+                        <span class="font-semibold" x-text="topic.title"></span>
+                    </button>
+                </template>
+            </div>
+
+            <div x-show="activeTopicId" x-cloak class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                <div x-data="{ activeTab: 'theory' }">
+                    <div class="border-b border-slate-200 mb-4">
+                        <nav class="-mb-px flex space-x-6 space-x-reverse" aria-label="Tabs">
+                            <button @click="activeTab = 'theory'" :class="{ 'active': activeTab === 'theory' }" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-teal-600 hover:border-teal-300">
+                                الشرح النظري
+                            </button>
+                            <button @click="activeTab = 'interactive'; initInteractive()" :class="{ 'active': activeTab === 'interactive' }" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-teal-600 hover:border-teal-300">
+                                تطبيق تفاعلي
+                            </button>
+                            <button @click="activeTab = 'qa'" :class="{ 'active': activeTab === 'qa' }" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-teal-600 hover:border-teal-300">
+                                أسئلة وأجوبة
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div x-html="getActiveTopicContent(activeTab)" class="prose max-w-none prose-teal prose-headings:font-bold prose-a:text-teal-600"></div>
+                </div>
+            </div>
+        </div>
+        <div x-show="!activeUnitId" class="text-center py-16">
+             <h2 class="text-4xl font-bold text-slate-700 mb-4">أهلاً بك في الحقيبة التدريبية التفاعلية</h2>
+             <p class="text-lg text-slate-500">اختر إحدى الوحدات التعليمية من الأعلى لبدء رحلتك في عالم التطبيقات التسويقية.</p>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        const appData = {
+            units: [
+                {
+                    id: 'forecasting',
+                    title: 'التنبؤ بالمبيعات',
+                    description: 'تعلم الطرق الكمية والوصفية لتقدير المبيعات المستقبلية، وهي حجر الزاوية في أي خطة تسويقية ناجحة.',
+                    topics: [
+                        { id: 'salesmen_opinions', title: 'آراء رجال البيع' },
+                        { id: 'simple_average', title: 'الوسط الحسابي البسيط' },
+                        { id: 'moving_average', title: 'المتوسط المتحرك البسيط' },
+                        { id: 'weighted_moving_average', title: 'المتوسط المتحرك الموزون' },
+                        { id: 'least_squares', title: 'طريقة المربعات الصغرى' },
+                    ]
+                },
+                {
+                    id: 'planning',
+                    title: 'تخطيط المبيعات',
+                    description: 'اكتشف كيفية تحويل التنبؤات إلى أهداف عملية، ووزع الحصص البيعية، وقم بقياس أداء فريقك وحساب عمولاتهم بدقة.',
+                    topics: [
+                        { id: 'quota_distribution', title: 'توزيع الحصص البيعية' },
+                        { id: 'performance_analysis', title: 'تحليل أداء البيع' },
+                    ]
+                },
+                {
+                    id: 'market_share',
+                    title: 'تحليل الحصة السوقية',
+                    description: 'قيّم موقع شركتك في السوق، واحسب حصتك السوقية العامة والنسبية، وحدد المنافسين الرئيسيين باستخدام أدوات تحليلية قوية.',
+                    topics: [
+                        { id: 'general_market_share', title: 'الحصة السوقية العامة' },
+                        { id: 'relative_market_share', title: 'الحصة السوقية النسبية' },
+                    ]
+                },
+                {
+                    id: 'databases',
+                    title: 'قواعد البيانات التسويقية',
+                    description: 'تعرف على أساسيات بناء وإدارة قواعد البيانات في MS Access لتنظيم معلومات العملاء، المبيعات، والمنافسين بكفاءة.',
+                    topics: [
+                        { id: 'db_concepts', title: 'المفاهيم والجداول' },
+                        { id: 'db_relations_queries', title: 'العلاقات والاستعلامات' },
+                        { id: 'db_forms_reports', title: 'النماذج والتقارير' },
+                    ]
+                }
+            ],
+            content: {
+                salesmen_opinions: {
+                    theory: `<h3>طريقة آراء رجال البيع</h3><p>هي إحدى الطرق الوصفية (النوعية) للتنبؤ، حيث يُطلب من كل رجل بيع تقدير حجم المبيعات المتوقعة في منطقته. ثم يتم تجميع هذه التقديرات للوصول إلى تنبؤ إجمالي للشركة.</p><ul><li><b>مميزاتها:</b> تستفيد من معرفة رجال البيع المباشرة بالعملاء والسوق والمنافسين.</li><li><b>عيوبها:</b> قد تكون التقديرات متحيزة (متفائلة جدًا أو متشائمة جدًا) بناءً على شخصية رجل البيع أو أدائه الأخير.</li></ul><p>لذلك، غالبًا ما يقوم مدير المبيعات بمراجعة وتعديل هذه التقديرات بناءً على خبرته ونظرته الشاملة للسوق.</p>`,
+                    interactive: `<div x-data="salesmenOpinionsCalculator()">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة تجميع تقديرات رجال البيع</h4>
+                                    <div class="space-y-4">
+                                        <template x-for="(salesman, index) in salesmen" :key="index">
+                                            <div class="flex items-center gap-4">
+                                                <input type="text" x-model="salesman.name" placeholder="اسم رجل البيع" class="p-2 border rounded-md w-1/3">
+                                                <input type="number" x-model.number="salesman.estimate" placeholder="التقدير بالريال" class="p-2 border rounded-md w-1/3">
+                                                <button @click="removeSalesman(index)" class="text-red-500 hover:text-red-700">&times; إزالة</button>
+                                            </div>
+                                        </template>
+                                        <button @click="addSalesman()" class="px-4 py-2 bg-teal-100 text-teal-800 rounded-md hover:bg-teal-200">+ إضافة رجل بيع</button>
+                                    </div>
+                                    <div class="mt-6 p-4 bg-stone-100 rounded-lg">
+                                        <h5 class="font-bold text-xl">التنبؤ الإجمالي للمبيعات: <span x-text="totalEstimate.toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' })" class="text-teal-600"></span></h5>
+                                    </div>
+                                 </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما هي الميزة الرئيسية لطريقة آراء رجال البيع؟<br><b>ج1:</b> أنها تعتمد على معرفة الأشخاص الأقرب إلى السوق والعملاء.</div>
+                            <div><b>س2:</b> لماذا قد يقوم المدير بتعديل تقديرات رجال البيع؟<br><b>ج2:</b> لتصحيح أي تحيز واضح، سواء كان تفاؤلًا مفرطًا أو تشاؤمًا لا مبرر له، بناءً على خبرة المدير ونظرته الشاملة.</div>
+                         </div>`
+                },
+                simple_average: {
+                    theory: `<h3>طريقة الوسط الحسابي البسيط</h3><p>هي من أبسط طرق التنبؤ الكمية، حيث يتم حساب متوسط المبيعات لكل الفترات التاريخية السابقة. التنبؤ للفترة القادمة هو ببساطة هذا المتوسط.</p>
+                             <p><b>متى تستخدم:</b> تكون مفيدة في الأسواق المستقرة التي لا تشهد نمواً أو انخفاضاً ملحوظاً (لا يوجد اتجاه عام واضح).</p>
+                             <p><b>المعادلة:</b> $التنبؤ = \\frac{\\sum{المبيعات الفعلية للفترات السابقة}}{عدد الفترات}$</p>
+                             <p><b>دالة Excel:</b> <code>=AVERAGE(range)</code></p>`,
+                    interactive: `<div x-data="forecastingCalculator({ method: 'simple_average' })">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية للوسط الحسابي</h4>
+                                    <div>
+                                        <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات التاريخية (افصل بين الأرقام بفاصلة):</label>
+                                        <textarea x-model="salesDataInput" @input="updateData" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="مثال: 200, 220, 210, 230, 225, 235"></textarea>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6 mt-6">
+                                        <div class="p-4 bg-stone-100 rounded-lg flex flex-col justify-center">
+                                            <h5 class="font-bold text-xl">التنبؤ للفترة القادمة:</h5>
+                                            <p class="text-3xl font-bold text-teal-600" x-text="forecastResult"></p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="forecastChart"></canvas>
+                                        </div>
+                                    </div>
+                                 </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما هي الدالة الرئيسية في Excel المستخدمة في طريقة الوسط الحسابي؟<br><b>ج1:</b> دالة <code>AVERAGE</code>.</div>
+                            <div><b>س2:</b> ما هو العيب الرئيسي لطريقة الوسط الحسابي؟<br><b>ج2:</b> أنها تعطي نفس الوزن للبيانات القديمة والحديثة، مما يجعلها غير دقيقة في حال وجود اتجاه عام للنمو أو الانخفاض.</div>
+                         </div>`
+                },
+                moving_average: {
+                    theory: `<h3>طريقة المتوسط المتحرك البسيط</h3><p>هي نسخة مطورة من الوسط الحسابي. بدلاً من استخدام كل البيانات التاريخية، يتم استخدام عدد محدد (n) من الفترات السابقة فقط. يعطي هذا وزناً أكبر للبيانات الأحدث ويساعد في تخفيف التقلبات العشوائية.</p>
+                             <p><b>المعادلة:</b> $التنبؤ للفترة (ت+1) = \\frac{\\sum{المبيعات الفعلية لآخر ن فترة}}{ن}$</p>
+                             <p><b>مثال:</b> المتوسط المتحرك لـ 3 فترات يعني أننا نستخدم متوسط آخر 3 فترات فقط للتنبؤ بالفترة التالية.</p>`,
+                    interactive: `<div x-data="forecastingCalculator({ method: 'moving_average' })">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية للمتوسط المتحرك</h4>
+                                    <div>
+                                        <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات التاريخية (افصل بفاصلة):</label>
+                                        <textarea x-model="salesDataInput" @input="updateData" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="200, 220, 210, 230, 225, 235"></textarea>
+                                    </div>
+                                    <div class="mt-4">
+                                        <label for="periods" class="block font-medium mb-2">عدد الفترات للمتوسط المتحرك (n): <span x-text="periods" class="font-bold text-teal-600"></span></label>
+                                        <input type="range" x-model.number="periods" @input="calculate" id="periods" min="2" :max="Math.max(2, data.length)" class="w-full">
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6 mt-6">
+                                        <div class="p-4 bg-stone-100 rounded-lg flex flex-col justify-center">
+                                            <h5 class="font-bold text-xl">التنبؤ للفترة القادمة:</h5>
+                                            <p class="text-3xl font-bold text-teal-600" x-text="forecastResult"></p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="forecastChart"></canvas>
+                                        </div>
+                                    </div>
+                                 </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما الفرق بين الوسط الحسابي والمتوسط المتحرك البسيط؟<br><b>ج1:</b> الوسط الحسابي يستخدم كل البيانات التاريخية، بينما المتوسط المتحرك يستخدم فقط عدد "n" من الفترات الأخيرة.</div>
+                            <div><b>س2:</b> كلما زادت قيمة (n) في المتوسط المتحرك، ماذا يحدث للتنبؤ؟<br><b>ج2:</b> يصبح التنبؤ أقل حساسية للتغيرات الحديثة وأكثر سلاسة (يقترب من تأثير الوسط الحسابي البسيط).</div>
+                         </div>`
+                },
+                 weighted_moving_average: {
+                    theory: `<h3>طريقة المتوسط المتحرك الموزون</h3><p>تشبه المتوسط المتحرك البسيط، ولكنها تعطي أوزاناً (أهمية) مختلفة للفترات السابقة ضمن النطاق (n). عادةً، يُعطى الوزن الأكبر للفترة الأحدث، وتقل الأوزان كلما رجعنا في الزمن.</p>
+                             <p><b>شرط أساسي:</b> يجب أن يكون مجموع الأوزان يساوي 1 (أو 100%).</p>
+                             <p><b>المعادلة:</b> $التنبؤ = (مبيعات الفترة_{ت} \\times وزن_{ت}) + (مبيعات الفترة_{ت-1} \\times وزن_{ت-1}) + ...$</p>
+                             <p><b>دالة Excel:</b> <code>=SUMPRODUCT(values_range, weights_range)</code></p>`,
+                    interactive: `<div x-data="forecastingCalculator({ method: 'weighted_moving_average' })">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية للمتوسط المتحرك الموزون</h4>
+                                    <div>
+                                        <label class="block font-medium mb-2">بيانات المبيعات لآخر 3 فترات:</label>
+                                        <div class="grid grid-cols-3 gap-2">
+                                           <input type="number" x-model.number="data[0]" @input="calculate" placeholder="الفترة 1" class="p-2 border rounded-md text-center">
+                                           <input type="number" x-model.number="data[1]" @input="calculate" placeholder="الفترة 2" class="p-2 border rounded-md text-center">
+                                           <input type="number" x-model.number="data[2]" @input="calculate" placeholder="الفترة 3" class="p-2 border rounded-md text-center">
+                                        </div>
+                                    </div>
+                                     <div class="mt-4">
+                                        <label class="block font-medium mb-2">الأوزان (للأحدث فالأقدم، يجب أن يكون المجموع 1):</label>
+                                        <div class="grid grid-cols-3 gap-2">
+                                           <input type="number" step="0.1" x-model.number="weights[2]" @input="calculate" placeholder="وزن 3" class="p-2 border rounded-md text-center">
+                                           <input type="number" step="0.1" x-model.number="weights[1]" @input="calculate" placeholder="وزن 2" class="p-2 border rounded-md text-center">
+                                           <input type="number" step="0.1" x-model.number="weights[0]" @input="calculate" placeholder="وزن 1" class="p-2 border rounded-md text-center">
+                                        </div>
+                                        <p class="text-sm mt-2" :class="{'text-red-500': totalWeight !== 1, 'text-green-600': totalWeight === 1}">مجموع الأوزان الحالي: <span x-text="totalWeight"></span></p>
+                                    </div>
+                                    <div class="mt-6 p-4 bg-stone-100 rounded-lg">
+                                        <h5 class="font-bold text-xl">التنبؤ للفترة القادمة:</h5>
+                                        <p class="text-3xl font-bold text-teal-600" x-text="forecastResult"></p>
+                                    </div>
+                                 </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما هو الشرط الذي يجب أن تحققه الأوزان في هذه الطريقة؟<br><b>ج1:</b> يجب أن يكون مجموعها يساوي 1 (أو 100%).</div>
+                            <div><b>س2:</b> ما هي الدالة الفعالة في Excel لحساب المتوسط المتحرك الموزون؟<br><b>ج2:</b> دالة <code>SUMPRODUCT</code>.</div>
+                         </div>`
+                },
+                least_squares: {
+                    theory: `<h3>طريقة المربعات الصغرى (الانحدار الخطي)</h3><p>هي طريقة إحصائية تستخدم للتنبؤ عندما يوجد اتجاه عام واضح (نمو أو انخفاض) في البيانات التاريخية. تقوم الطريقة برسم أفضل خط مستقيم يمر عبر نقاط البيانات (خط الاتجاه العام).</p>
+                             <p><b>معادلة الخط المستقيم:</b> $Y = a + bX$</p>
+                             <ul>
+                                <li><b>Y:</b> القيمة المتنبأ بها (المبيعات).</li>
+                                <li><b>X:</b> متغير الزمن (الفترة 1, 2, 3...).</li>
+                                <li><b>a:</b> نقطة تقاطع الخط مع المحور الرأسي.</li>
+                                <li><b>b:</b> ميل الخط (مقدار التغير في المبيعات مع كل فترة زمنية).</li>
+                             </ul>
+                             <p><b>دوال Excel:</b> <code>=FORECAST.LINEAR(x, known_y's, known_x's)</code>, <code>=SLOPE(...)</code>, <code>=INTERCEPT(...)</code></p>`,
+                    interactive: `<div x-data="forecastingCalculator({ method: 'least_squares' })">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية لطريقة المربعات الصغرى</h4>
+                                    <div>
+                                        <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات التاريخية (افصل بفاصلة):</label>
+                                        <textarea x-model="salesDataInput" @input="updateData" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="150, 165, 180, 200, 210"></textarea>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6 mt-6">
+                                        <div class="p-4 bg-stone-100 rounded-lg space-y-3">
+                                            <div>
+                                                <h5 class="font-bold text-lg">التنبؤ للفترة القادمة (<span x-text="data.length + 1"></span>):</h5>
+                                                <p class="text-2xl font-bold text-teal-600" x-text="forecastResult"></p>
+                                            </div>
+                                            <div>
+                                                 <h5 class="font-bold text-lg">معادلة خط الاتجاه:</h5>
+                                                 <p class="text-lg text-slate-700" x-html="equation"></p>
+                                            </div>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="forecastChart"></canvas>
+                                        </div>
+                                    </div>
+                                 </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> متى تكون طريقة المربعات الصغرى هي الأنسب للتنبؤ؟<br><b>ج1:</b> عندما تظهر البيانات التاريخية اتجاهاً عاماً واضحاً ومستمراً (صعوداً أو هبوطاً).</div>
+                            <div><b>س2:</b> ما هي الدالة المباشرة في Excel للتنبؤ الخطي؟<br><b>ج2:</b> دالة <code>FORECAST.LINEAR</code>.</div>
+                         </div>`
+                },
+                quota_distribution: {
+                    theory: `<h3>توزيع الحصص البيعية</h3><p>تخطيط الحصص البيعية يعني تحديد وتوزيع الأهداف البيعية على أفراد فريق البيع أو المناطق. الهدف هو تحويل الهدف الإجمالي للشركة إلى أهداف فردية قابلة للتحقيق.</p>
+                             <h4>أسس توزيع الحصص:</h4>
+                             <ul>
+                                <li><b>المساواة:</b> توزيع الهدف بالتساوي على الجميع. هي الطريقة الأبسط ولكنها لا تراعي الفروق الفردية أو إمكانيات المناطق.</li>
+                                <li><b>البيانات التاريخية:</b> من حقق مبيعات أعلى في الماضي يحصل على حصة أعلى.</li>
+                                <li><b>النسب المئوية المحددة:</b> يتم توزيع الهدف بناءً على نسب مئوية متفق عليها مسبقًا تعكس خبرة رجل البيع أو أهمية منطقته.</li>
+                             </ul>`,
+                    interactive: `<div x-data="quotaDistributionCalculator()">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة توزيع الحصص البيعية</h4>
+                                    <div class="mb-4">
+                                        <label class="block font-medium mb-2">الهدف البيعي الإجمالي للشركة (بالريال):</label>
+                                        <input type="number" x-model.number="totalTarget" class="w-full p-2 border rounded-md">
+                                    </div>
+                                    <div class="space-y-3">
+                                        <template x-for="(salesman, index) in salesmen" :key="index">
+                                            <div class="grid grid-cols-3 gap-4 items-center">
+                                                <input type="text" x-model="salesman.name" placeholder="اسم رجل البيع" class="p-2 border rounded-md col-span-1">
+                                                <div class="col-span-2">
+                                                    <label class="block text-sm font-medium">النسبة المئوية للحصة: <span x-text="salesman.percentage" class="font-bold text-teal-600"></span>%</label>
+                                                    <input type="range" x-model.number="salesman.percentage" min="0" max="100" class="w-full">
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                     <p class="text-sm mt-2" :class="{'text-red-500': totalPercentage !== 100, 'text-green-600': totalPercentage === 100}">مجموع النسب الحالي: <span x-text="totalPercentage"></span>%</p>
+                                     <div class="mt-6 border-t pt-4">
+                                        <h5 class="font-bold text-lg mb-2">الحصص الموزعة:</h5>
+                                        <div class="space-y-2">
+                                            <template x-for="salesman in salesmen" :key="salesman.name">
+                                                <div class="flex justify-between p-2 bg-stone-100 rounded-md">
+                                                    <span x-text="salesman.name"></span>
+                                                    <span class="font-semibold text-teal-700" x-text="calculateQuota(salesman.percentage).toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' })"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                     </div>
+                                 </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما الفرق بين التنبؤ بالمبيعات وتخطيط المبيعات؟<br><b>ج1:</b> التنبؤ هو تقدير لما "قد يحدث"، أما التخطيط فهو تحديد ما "نريد أن يحدث" ووضع خطة لتحقيقه.</div>
+                            <div><b>س2:</b> اذكر أساسين لتوزيع الحصص البيعية.<br><b>ج2:</b> التوزيع بالتساوي، والتوزيع بناءً على الأداء التاريخي أو النسب المئوية.</div>
+                         </div>`
+                },
+                performance_analysis: {
+                    theory: `<h3>تحليل أداء فريق البيع</h3><p>بعد تحديد الحصص، من الضروري متابعة الأداء الفعلي مقارنة بالمستهدف. هذا يساعد في تقييم أداء رجال البيع وتحديد نقاط القوة والضعف.</p>
+                             <ul>
+                                <li><b>مقدار الانحراف:</b> هو الفرق المطلق بين المبيعات الفعلية والحصة المستهدفة. (الانحراف = الفعلي - المستهدف).</li>
+                                <li><b>معدل أداء رجل البيع:</b> هو نسبة المبيعات الفعلية إلى الحصة المستهدفة. ($معدل الأداء = \\frac{المبيعات الفعلية}{الحصة المستهدفة}$).</li>
+                                <li><b>مقدار العمولة:</b> هي مكافأة مالية تُحسب عادة كنسبة مئوية من المبيعات الفعلية.</li>
+                             </ul>`,
+                    interactive: `<div x-data="performanceCalculator()">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة تحليل أداء البيع</h4>
+                                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block font-medium mb-2">الحصة المستهدفة (ريال):</label>
+                                            <input type="number" x-model.number="target" class="w-full p-2 border rounded-md">
+                                        </div>
+                                        <div>
+                                            <label class="block font-medium mb-2">المبيعات الفعلية (ريال):</label>
+                                            <input type="number" x-model.number="actual" class="w-full p-2 border rounded-md">
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block font-medium mb-2">نسبة العمولة (%):</label>
+                                        <input type="number" x-model.number="commissionRate" class="w-full p-2 border rounded-md">
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-4 mt-6 border-t pt-4">
+                                        <div class="space-y-3">
+                                            <div class="p-3 bg-stone-100 rounded-md"><b>مقدار الانحراف:</b> <span :class="{'text-green-600': deviation >= 0, 'text-red-500': deviation < 0}" class="font-bold" x-text="deviation.toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' })"></span></div>
+                                            <div class="p-3 bg-stone-100 rounded-md"><b>معدل الأداء:</b> <span class="font-bold text-teal-600" x-text="performanceRate + '%'"></span></div>
+                                            <div class="p-3 bg-stone-100 rounded-md"><b>مقدار العمولة:</b> <span class="font-bold text-teal-600" x-text="commissionAmount.toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' })"></span></div>
+                                        </div>
+                                        <div class="flex flex-col items-center justify-center">
+                                            <label class="font-semibold mb-2">مؤشر الأداء</label>
+                                            <div class="w-full bg-slate-200 rounded-full h-6">
+                                                <div class="bg-teal-500 h-6 rounded-full text-center text-white text-sm" :style="'width:' + Math.min(performanceRate, 100) + '%'" x-text="performanceRate + '%'"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                 </div>`,
+                     qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ماذا يعني معدل أداء 120%؟<br><b>ج1:</b> يعني أن رجل البيع حقق 20% أعلى من حصته المستهدفة.</div>
+                            <div><b>س2:</b> ما الفرق بين الانحراف ومعدل الأداء؟<br><b>ج2:</b> الانحراف هو القيمة المطلقة للفرق (بالريال)، بينما معدل الأداء هو نسبة مئوية تقارن الفعلي بالمستهدف.</div>
+                         </div>`
+                },
+                general_market_share: {
+                    theory: `<h3>مفهوم وحساب الحصة السوقية العامة</h3><p>الحصة السوقية (Market Share) هي النسبة المئوية لمبيعات شركة معينة من إجمالي مبيعات السوق لنفس المنتج أو الخدمة خلال فترة محددة. تعتبر مؤشراً رئيسياً على القدرة التنافسية للشركة.</p>
+                             <p><b>صيغتها:</b> $الحصة السوقية العامة = (\\frac{مبيعات الشركة}{إجمالي مبيعات السوق}) \\times 100\\%$</p>
+                             <p>إجمالي مبيعات السوق هو مجموع مبيعات شركتك وجميع الشركات المنافسة.</p>`,
+                    interactive: `<div x-data="marketShareCalculator({ method: 'general' })">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة الحصة السوقية العامة</h4>
+                                    <div class="mb-4">
+                                        <label class="block font-medium mb-2">مبيعات شركتنا (ريال):</label>
+                                        <input type="number" x-model.number="ourSales" @input="calculate" class="w-full p-2 border rounded-md">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block font-medium mb-2">مبيعات المنافسين (افصل بين أرقام مبيعات كل منافس بفاصلة):</label>
+                                        <textarea x-model="competitorSalesInput" @input="updateCompetitors" rows="2" class="w-full p-2 border rounded-md" placeholder="مثال: 2500000, 1000000"></textarea>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6 mt-6 border-t pt-4">
+                                        <div class="p-4 bg-stone-100 rounded-lg space-y-3">
+                                            <div><b>إجمالي مبيعات السوق:</b> <span class="font-bold" x-text="totalMarketSales.toLocaleString('ar-SA', { style: 'currency', currency: 'SAR' })"></span></div>
+                                            <div><b>حصتنا السوقية العامة:</b> <span class="font-bold text-2xl text-teal-600" x-text="ourMarketShare + '%'"></span></div>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="marketShareChart"></canvas>
+                                        </div>
+                                    </div>
+                                 </div>`,
+                     qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> على ماذا تدل الحصة السوقية المرتفعة؟<br><b>ج1:</b> تدل على أن الشركة تحتل مكانة رائدة وقوية في السوق مقارنة بمنافسيها.</div>
+                            <div><b>س2:</b> ما هما المعلومتان الأساسيتان اللازمتان لحساب الحصة السوقية العامة؟<br><b>ج2:</b> مبيعات الشركة وإجمالي مبيعات السوق (أو مبيعات جميع المنافسين).</div>
+                         </div>`
+                },
+                relative_market_share: {
+                    theory: `<h3>الحصة السوقية النسبية وتحديد الشركة الرائدة</h3><p>الحصة السوقية النسبية (Relative Market Share) تقيس قوة الشركة مقارنة بأكبر منافس لها في السوق. تساعد في فهم الوضع التنافسي بشكل أعمق من الحصة العامة.</p>
+                             <p><b>صيغتها:</b> $الحصة السوقية النسبية = (\\frac{مبيعاتنا}{مبيعات أكبر منافس})$</p>
+                             <p><b>الشركة الرائدة:</b> هي الشركة التي تمتلك أكبر حصة سوقية عامة في السوق. إذا كانت الحصة السوقية النسبية أكبر من 1 (أو 100%)، فهذا يعني أن شركتنا هي الشركة الرائدة.</p>`,
+                    interactive: `<div x-data="marketShareCalculator({ method: 'relative' })">
+                                    <h4 class="text-lg font-semibold mb-4">حاسبة الحصة السوقية النسبية</h4>
+                                     <div class="mb-4">
+                                        <label class="block font-medium mb-2">مبيعات شركتنا (ريال):</label>
+                                        <input type="number" x-model.number="ourSales" @input="calculate" class="w-full p-2 border rounded-md">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block font-medium mb-2">مبيعات أكبر منافس (ريال):</label>
+                                        <input type="number" x-model.number="largestCompetitorSales" @input="calculate" class="w-full p-2 border rounded-md">
+                                    </div>
+                                    <div class="mt-6 border-t pt-4">
+                                        <div class="p-4 bg-stone-100 rounded-lg">
+                                            <h5 class="font-bold text-lg">حصتنا السوقية النسبية:</h5>
+                                            <p class="font-bold text-3xl text-teal-600" x-text="relativeMarketShare + '%'"></p>
+                                            <p x-show="relativeMarketShare > 100" class="text-green-700 font-semibold mt-2">شركتنا هي الشركة الرائدة في السوق.</p>
+                                            <p x-show="relativeMarketShare < 100" class="text-orange-700 font-semibold mt-2">المنافس هو الشركة الرائدة في السوق.</p>
+                                            <p x-show="relativeMarketShare == 100" class="text-blue-700 font-semibold mt-2">نحن والمنافس متساويان في الصدارة.</p>
+                                        </div>
+                                    </div>
+                                 </div>`,
+                     qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ماذا تعني حصة سوقية نسبية تساوي 0.5 (أو 50%)؟<br><b>ج1:</b> تعني أن مبيعات شركتنا تساوي نصف مبيعات أكبر منافس لنا.</div>
+                            <div><b>س2:</b> كيف تحدد الشركة الرائدة في السوق؟<br><b>ج2:</b> هي الشركة صاحبة أعلى مبيعات (أو أعلى حصة سوقية عامة).</div>
+                         </div>`
+                },
+                 db_concepts: {
+                    theory: `<h3>قواعد البيانات: المفاهيم الأساسية والجداول</h3>
+                             <p>قاعدة البيانات (Database) هي مجموعة منظمة من البيانات المترابطة، مصممة لتسهيل تخزين المعلومات والوصول إليها وإدارتها. في سياق التسويق، نستخدمها لتخزين بيانات العملاء، المبيعات، والمنافسين.</p>
+                             <ul>
+                                <li><b>الجدول (Table):</b> هو المكون الأساسي، يتكون من صفوف (سجلات) وأعمدة (حقول). كل جدول يخزن بيانات حول موضوع واحد (مثل العملاء).</li>
+                                <li><b>الحقل (Field):</b> هو عمود في الجدول يمثل معلومة محددة (مثل اسم العميل الأول).</li>
+                                <li><b>السجل (Record):</b> هو صف في الجدول يمثل مجموعة كاملة من المعلومات حول عنصر واحد (مثل كل بيانات عميل واحد).</li>
+                                <li><b>المفتاح الأساسي (Primary Key):</b> هو حقل فريد لا يتكرر في الجدول (مثل رقم العميل)، يُستخدم لتعريف كل سجل بشكل مميز.</li>
+                             </ul>`,
+                    interactive: `<h4 class="text-lg font-semibold mb-4">مثال على تصميم جدول "العملاء" في MS Access</h4>
+                                  <p class="mb-4">فيما يلي محاكاة لواجهة تصميم جدول في Access. يمكنك رؤية أسماء الحقول وأنواع البيانات المخصصة لكل منها. المفتاح الأساسي مميز بأيقونة المفتاح.</p>
+                                  <div class="p-4 border rounded-lg bg-slate-50">
+                                    <div class="grid grid-cols-3 gap-2 font-bold border-b pb-2 mb-2 text-slate-600">
+                                        <div>أيقونة</div>
+                                        <div>اسم الحقل (Field Name)</div>
+                                        <div>نوع البيانات (Data Type)</div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 items-center py-1">
+                                        <div class="text-amber-500">🔑</div>
+                                        <div>CustomerID</div>
+                                        <div>AutoNumber (ترقيم تلقائي)</div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 items-center py-1 bg-white rounded">
+                                        <div></div>
+                                        <div>FirstName</div>
+                                        <div>Short Text (نص مختصر)</div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 items-center py-1">
+                                        <div></div>
+                                        <div>LastName</div>
+                                        <div>Short Text (نص مختصر)</div>
+                                    </div>
+                                     <div class="grid grid-cols-3 gap-2 items-center py-1 bg-white rounded">
+                                        <div></div>
+                                        <div>JoinDate</div>
+                                        <div>Date/Time (تاريخ/وقت)</div>
+                                    </div>
+                                     <div class="grid grid-cols-3 gap-2 items-center py-1">
+                                        <div></div>
+                                        <div>City</div>
+                                        <div>Short Text (نص مختصر)</div>
+                                    </div>
+                                  </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما هو المفتاح الأساسي (Primary Key) وما هي وظيفته؟<br><b>ج1:</b> هو حقل فريد لا يتكرر في الجدول (مثل رقم العميل)، ويُستخدم لتعريف كل سجل بشكل مميز ومنع التكرار.</div>
+                            <div><b>س2:</b> لماذا من المهم اختيار نوع البيانات المناسب لكل حقل؟<br><b>ج2:</b> لضمان صحة البيانات (لا يمكن إدخال نص في حقل رقمي)، وتوفير مساحة تخزين، وتسهيل العمليات الحسابية والفرز.</div>
+                         </div>`
+                },
+                db_relations_queries: {
+                    theory: `<h3>العلاقات والاستعلامات</h3>
+                             <p><b>العلاقات (Relationships):</b> هي روابط منطقية بين الجداول. يتم إنشاؤها عبر ربط حقل المفتاح الأساسي في جدول بحقل مطابق (يسمى المفتاح الأجنبي Foreign Key) في جدول آخر. فائدتها الرئيسية هي ربط البيانات ومنع التكرار.</p>
+                             <p><b>الاستعلام (Query):</b> هو سؤال توجهه لقاعدة البيانات لاسترجاع بيانات معينة، أو تحديثها، أو حذفها. يمكن للاستعلام دمج بيانات من جداول متعددة مرتبطة ببعضها.</p>
+                             <p><b>فرض التكامل المرجعي:</b> هو خيار عند إنشاء علاقة يضمن الحفاظ على تناسق البيانات، حيث لا يمكن إضافة سجل في جدول مرتبط إلا إذا كانت القيمة المرتبطة به موجودة في الجدول الأساسي.</p>`,
+                    interactive: `<h4 class="text-lg font-semibold mb-4">محاكاة لإنشاء علاقة واستعلام</h4>
+                                  <div x-data="{ hovered: '' }">
+                                    <p class="mb-4"><b>1. العلاقة بين العملاء والمبيعات:</b> يتم ربط جدول العملاء (الأساسي) بجدول المبيعات (المرتبط) باستخدام المفتاح المشترك <code>CustomerID</code>.</p>
+                                    <div class="flex flex-col md:flex-row justify-center items-start gap-4 text-center">
+                                        <div class="p-3 border-2 rounded-lg w-48" :class="{'border-teal-500': hovered === 'pk'}">
+                                            <h6 class="font-bold border-b pb-1 mb-1">العملاء</h6>
+                                            <p @mouseover="hovered='pk'" @mouseleave="hovered=''" class="p-1 rounded cursor-pointer" :class="{'bg-teal-100 text-teal-800': hovered === 'pk'}">🔑 CustomerID</p>
+                                            <p>FirstName</p>
+                                        </div>
+                                        <div class="self-center font-mono text-teal-600 font-bold text-xl p-2">&lt;--- 1..&infin; ---&gt;</div>
+                                        <div class="p-3 border-2 rounded-lg w-48" :class="{'border-teal-500': hovered === 'fk'}">
+                                            <h6 class="font-bold border-b pb-1 mb-1">المبيعات</h6>
+                                            <p>SaleID</p>
+                                             <p @mouseover="hovered='fk'" @mouseleave="hovered=''" class="p-1 rounded cursor-pointer" :class="{'bg-teal-100 text-teal-800': hovered === 'fk'}">CustomerID</p>
+                                            <p>Amount</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-8 mb-4"><b>2. استعلام لعرض عملاء مدينة "جدة":</b> نسحب الحقول المطلوبة ونضع شرط "جدة" في خانة المعايير (Criteria) تحت حقل المدينة.</p>
+                                    <div class="p-4 border rounded-lg bg-slate-50 font-mono text-sm overflow-x-auto">
+                                       <p><span class="text-blue-600 font-bold">SELECT</span> Customers.FirstName, Customers.LastName, Customers.City</p>
+                                       <p><span class="text-blue-600 font-bold">FROM</span> Customers</p>
+                                       <p><span class="text-blue-600 font-bold">WHERE</span> Customers.City = <span class="text-red-600">"جدة"</span>;</p>
+                                    </div>
+                                  </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما فائدة "فرض التكامل المرجعي" عند إنشاء علاقة؟<br><b>ج1:</b> يضمن أنه لا يمكن إضافة عملية بيع لعميل غير موجود في جدول العملاء، ولا يمكن حذف عميل له عمليات بيع مسجلة، مما يحافظ على دقة البيانات.</div>
+                            <div><b>س2:</b> ما الفرق بين المفتاح الأساسي والمفتاح الأجنبي؟<br><b>ج2:</b> المفتاح الأساسي (Primary Key) يعرّف السجل بشكل فريد داخل جدوله. المفتاح الأجنبي (Foreign Key) هو حقل في جدول يشير إلى المفتاح الأساسي في جدول آخر، ويستخدم لإنشاء علاقة بينهما.</div>
+                         </div>`
+                },
+                 db_forms_reports: {
+                    theory: `<h3>النماذج والتقارير</h3>
+                             <p><b>النموذج (Form):</b> هو واجهة رسومية تستخدم لإدخال البيانات وتحريرها وعرضها في الجداول بطريقة سهلة ومنظمة، بدلاً من التعامل المباشر مع شبكة الجدول. النماذج تجعل قاعدة البيانات سهلة الاستخدام للمستخدم النهائي.</p>
+                             <p><b>التقرير (Report):</b> هو وسيلة لعرض البيانات وتلخيصها وتجميعها وطباعتها بتنسيق احترافي. التقارير مصممة للقراءة والطباعة فقط، وليس لإدخال البيانات. يمكن أن تحتوي على حسابات (مثل المجاميع) ومخططات بيانية.</p>
+                             <p><b>المخطط البياني (Chart):</b> هو تمثيل مرئي للبيانات (أعمدة، دوائر، خطوط) يمكن إضافته للنماذج أو التقارير لتسهيل فهم الأرقام والاتجاهات.</p>`,
+                    interactive: `<h4 class="text-lg font-semibold mb-4">مثال على نموذج وتقرير</h4>
+                                  <div class="grid md:grid-cols-2 gap-8">
+                                    <div>
+                                        <h5 class="font-semibold mb-2 text-center">1. نموذج إدخال بيانات العملاء</h5>
+                                        <div class="p-4 border-2 rounded-xl bg-white shadow-lg">
+                                            <h6 class="text-lg font-bold text-white bg-teal-700 -mx-4 -mt-4 p-3 rounded-t-lg mb-4">بيانات العميل</h6>
+                                            <div class="space-y-4 p-2">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-slate-600">الاسم الأول:</label>
+                                                    <input type="text" value="سارة" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400">
+                                                </div>
+                                                 <div>
+                                                    <label class="block text-sm font-medium text-slate-600">اسم العائلة:</label>
+                                                    <input type="text" value="الأحمدي" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400">
+                                                </div>
+                                                 <div>
+                                                    <label class="block text-sm font-medium text-slate-600">المدينة:</label>
+                                                    <input type="text" value="الدمام" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400">
+                                                </div>
+                                                <div class="text-center pt-4">
+                                                    <button class="px-6 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">حفظ</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 class="font-semibold mb-2 text-center">2. تقرير ملخص المبيعات حسب المدينة</h5>
+                                        <div class="p-4 border-2 rounded-xl bg-white shadow-lg">
+                                            <h6 class="text-lg font-bold text-center border-b pb-2 mb-2">تقرير المبيعات - يونيو 2025</h6>
+                                            <div class="chart-container h-48">
+                                                <canvas id="reportChart"></canvas>
+                                            </div>
+                                            <table class="w-full text-sm mt-4">
+                                                <thead class="bg-slate-100"><tr><th class="p-2 text-right">المدينة</th><th class="p-2 text-left">إجمالي المبيعات</th></tr></thead>
+                                                <tbody>
+                                                    <tr><td class="p-2">الرياض</td><td class="p-2 text-left">120,500 ريال</td></tr>
+                                                    <tr><td class="p-2 bg-slate-50">جدة</td><td class="p-2 text-left bg-slate-50">98,000 ريال</td></tr>
+                                                    <tr><td class="p-2">الدمام</td><td class="p-2 text-left">75,300 ريال</td></tr>
+                                                </tbody>
+                                                <tfoot class="font-bold border-t-2"><tr class="bg-slate-100"><td class="p-2">الإجمالي</td><td class="p-2 text-left">293,800 ريال</td></tr></tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                  </div>`,
+                    qa: `<h5>أسئلة للمراجعة</h5>
+                         <div class="space-y-4 mt-4">
+                            <div><b>س1:</b> ما هو الغرض الرئيسي من استخدام النماذج (Forms)؟<br><b>ج1:</b> تسهيل عملية إدخال وتعديل البيانات للمستخدم النهائي وجعلها أكثر تنظيماً وأقل عرضة للخطأ.</div>
+                            <div><b>س2:</b> هل يمكنك تعديل البيانات مباشرة من التقرير (Report)؟<br><b>ج2:</b> لا، التقارير مصممة للعرض والطباعة فقط. يتم تعديل البيانات من خلال الجداول أو النماذج.</div>
+                         </div>`
+                },
+            }
+        };
+
+        function trainingApp() {
+            return {
+                units: appData.units,
+                content: appData.content,
+                activeUnitId: null,
+                activeTopicId: null,
+                mobileMenuOpen: false,
+                currentChart: null,
+
+                init() {
+                    this.setActiveUnit(this.units[0].id);
+                },
+
+                setActiveUnit(unitId) {
+                    this.activeUnitId = unitId;
+                    this.setActiveTopic(this.getActiveUnit().topics[0].id);
+                },
+
+                setActiveTopic(topicId) {
+                    this.destroyChart();
+                    this.activeTopicId = topicId;
+                },
+
+                getActiveUnit() {
+                    return this.units.find(u => u.id === this.activeUnitId) || {};
+                },
+
+                getActiveTopic() {
+                    return this.getActiveUnit().topics.find(t => t.id === this.activeTopicId) || {};
+                },
+                
+                getActiveTopicContent(tab) {
+                    if (!this.activeTopicId) return '';
+                    return this.content[this.activeTopicId]?.[tab] || 'المحتوى غير متوفر.';
+                },
+                
+                initInteractive() {
+                    this.$nextTick(() => {
+                        this.destroyChart();
+                        const reportCanvas = document.getElementById('reportChart');
+                        if(reportCanvas) {
+                           this.createReportChart();
+                        }
+                    });
+                },
+
+                destroyChart() {
+                    if (this.currentChart) {
+                        this.currentChart.destroy();
+                        this.currentChart = null;
+                    }
+                },
+                
+                createReportChart() {
+                    this.destroyChart();
+                    const ctx = document.getElementById('reportChart')?.getContext('2d');
+                    if(!ctx) return;
+                    this.currentChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['الرياض', 'جدة', 'الدمام'],
+                            datasets: [{
+                                label: 'إجمالي المبيعات',
+                                data: [120500, 98000, 75300],
+                                backgroundColor: ['#14b8a6', '#f59e0b', '#3b82f6'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+            };
+        }
+        
+        function salesmenOpinionsCalculator() {
+            return {
+                salesmen: [
+                    { name: 'سالم', estimate: 150000 },
+                    { name: 'علي', estimate: 180000 },
+                    { name: 'خالد', estimate: 165000 },
+                ],
+                get totalEstimate() {
+                    return this.salesmen.reduce((total, s) => total + (Number(s.estimate) || 0), 0);
+                },
+                addSalesman() {
+                    this.salesmen.push({ name: '', estimate: 0 });
+                },
+                removeSalesman(index) {
+                    this.salesmen.splice(index, 1);
+                }
+            }
+        }
+
+        function forecastingCalculator(config) {
+            return {
+                method: config.method,
+                salesDataInput: '200, 220, 210, 230, 225, 235',
+                data: [200, 220, 210, 230, 225, 235],
+                periods: 3,
+                weights: [0.2, 0.3, 0.5],
+                forecastResult: '...',
+                equation: '',
+                chartInstance: null,
+                
+                get totalWeight() {
+                    return this.weights.reduce((sum, w) => sum + Number(w), 0).toFixed(2);
+                },
+                
+                init() {
+                    if(this.method === 'weighted_moving_average') {
+                       this.data = [230, 225, 235];
+                    } else if (this.method === 'least_squares') {
+                        this.salesDataInput = '150, 165, 180, 200, 210';
+                    }
+                    this.updateData();
+                },
+
+                updateData() {
+                    const values = this.salesDataInput.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+                    this.data = values;
+                    if(this.method === 'moving_average' && this.periods > values.length) {
+                        this.periods = Math.max(2, values.length);
+                    }
+                    this.calculate();
+                },
+                
+                calculate() {
+                    if (this.data.length === 0) {
+                        this.forecastResult = 'أدخل بيانات';
+                        this.destroyChart();
+                        return;
+                    }
+
+                    let result = 0;
+                    switch(this.method) {
+                        case 'simple_average':
+                            result = this.data.reduce((a, b) => a + b, 0) / this.data.length;
+                            break;
+                        case 'moving_average':
+                            if (this.data.length >= this.periods) {
+                                const relevantData = this.data.slice(-this.periods);
+                                result = relevantData.reduce((a, b) => a + b, 0) / this.periods;
+                            } else {
+                                this.forecastResult = 'بيانات غير كافية';
+                                this.destroyChart();
+                                return;
+                            }
+                            break;
+                        case 'weighted_moving_average':
+                            if(this.totalWeight != 1) {
+                                this.forecastResult = 'الأوزان يجب أن تساوي 1';
+                                return;
+                            }
+                             result = this.data.reduce((sum, val, i) => sum + val * (this.weights[i] || 0), 0);
+                            break;
+                         case 'least_squares':
+                            const n = this.data.length;
+                            if (n < 2) {
+                                this.forecastResult = 'بيانات غير كافية';
+                                this.destroyChart();
+                                return;
+                            }
+                            const x = Array.from({length: n}, (_, i) => i + 1);
+                            const sum_x = x.reduce((a, b) => a + b, 0);
+                            const sum_y = this.data.reduce((a, b) => a + b, 0);
+                            const sum_xy = x.reduce((sum, val, i) => sum + val * this.data[i], 0);
+                            const sum_xx = x.reduce((sum, val) => sum + val * val, 0);
+
+                            const b = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+                            const a = (sum_y / n) - (b * sum_x / n);
+                            
+                            result = a + b * (n + 1);
+                            this.equation = `Y = ${a.toFixed(2)} + ${b.toFixed(2)}X`;
+                            break;
+                    }
+                    this.forecastResult = result > 0 ? result.toFixed(2) : '...';
+                    this.updateChart();
+                },
+                
+                updateChart() {
+                    this.destroyChart();
+                    const chartCanvas = document.getElementById('forecastChart');
+                    if (!chartCanvas) return;
+                    
+                    const ctx = chartCanvas.getContext('2d');
+                    const labels = this.data.map((_, i) => `الفترة ${i+1}`);
+                    const datasets = [{
+                        label: 'المبيعات الفعلية',
+                        data: this.data,
+                        borderColor: '#0d9488',
+                        backgroundColor: '#ccfbf1',
+                        fill: true,
+                        tension: 0.1
+                    }];
+
+                    if(this.method === 'least_squares') {
+                        const trendlineData = this.data.map((_, i) => {
+                           const [a_str, b_str] = this.equation.replace('Y = ','').split(' + ');
+                           const a = parseFloat(a_str);
+                           const b = parseFloat(b_str.replace('X',''));
+                           return a + b * (i + 1);
+                        });
+                        datasets.push({
+                           label: 'خط الاتجاه العام',
+                           data: trendlineData,
+                           borderColor: '#f59e0b',
+                           type: 'line',
+                           fill: false,
+                           pointRadius: 0
+                        });
+                    }
+
+                    this.chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: false } }
+                        }
+                    });
+                },
+                
+                destroyChart() {
+                    if (this.chartInstance) {
+                        this.chartInstance.destroy();
+                        this.chartInstance = null;
+                    }
+                }
+            };
+        }
+
+        function quotaDistributionCalculator() {
+            return {
+                totalTarget: 1000000,
+                salesmen: [
+                    { name: 'أحمد', percentage: 30 },
+                    { name: 'علي', percentage: 25 },
+                    { name: 'خالد', percentage: 20 },
+                    { name: 'سعيد', percentage: 15 },
+                    { name: 'ناصر', percentage: 10 },
+                ],
+                get totalPercentage() {
+                    return this.salesmen.reduce((total, s) => total + Number(s.percentage), 0);
+                },
+                calculateQuota(percentage) {
+                    return (this.totalTarget * percentage) / 100;
+                }
+            }
+        }
+
+        function performanceCalculator() {
+            return {
+                target: 200000,
+                actual: 220000,
+                commissionRate: 2,
+                get deviation() { return this.actual - this.target; },
+                get performanceRate() { return this.target > 0 ? Math.round((this.actual / this.target) * 100) : 0; },
+                get commissionAmount() { return this.actual * (this.commissionRate / 100); }
+            }
+        }
+        
+        function marketShareCalculator(config) {
+            return {
+                method: config.method,
+                ourSales: 5000000,
+                competitorSalesInput: '15000000, 5000000',
+                competitorSales: [15000000, 5000000],
+                largestCompetitorSales: 25000000,
+                chartInstance: null,
+                
+                init() {
+                    this.calculate();
+                },
+
+                updateCompetitors() {
+                    this.competitorSales = this.competitorSalesInput.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+                    this.calculate();
+                },
+
+                get totalMarketSales() {
+                    return this.ourSales + this.competitorSales.reduce((sum, sales) => sum + sales, 0);
+                },
+
+                get ourMarketShare() {
+                    return this.totalMarketSales > 0 ? ((this.ourSales / this.totalMarketSales) * 100).toFixed(1) : 0;
+                },
+
+                get relativeMarketShare() {
+                    return this.largestCompetitorSales > 0 ? ((this.ourSales / this.largestCompetitorSales) * 100).toFixed(1) : 0;
+                },
+                
+                calculate() {
+                    if (this.method === 'general') {
+                        this.updateChart();
+                    }
+                },
+                
+                updateChart() {
+                    this.destroyChart();
+                    const chartCanvas = document.getElementById('marketShareChart');
+                    if (!chartCanvas) return;
+                    
+                    const ctx = chartCanvas.getContext('2d');
+                    
+                    const labels = ['شركتنا', ...this.competitorSales.map((_, i) => `منافس ${i+1}`)];
+                    const data = [this.ourSales, ...this.competitorSales];
+
+                    this.chartInstance = new Chart(ctx, {
+                        type: 'pie',
+                        data: { 
+                            labels, 
+                            datasets: [{
+                                data,
+                                backgroundColor: ['#14b8a6', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                             plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed !== null) {
+                                               const percentage = (context.parsed / context.chart.getDatasetMeta(0).total * 100).toFixed(1);
+                                               label += percentage + '%';
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                 destroyChart() {
+                    if (this.chartInstance) {
+                        this.chartInstance.destroy();
+                        this.chartInstance = null;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
