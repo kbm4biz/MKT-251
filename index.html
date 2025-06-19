@@ -83,7 +83,7 @@
     </header>
 
     <main class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div x-show="activeUnitId">
+        <div x-show="activeUnitId && activeUnitId !== 'about'">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-teal-800 mb-2" x-text="getActiveUnit().title"></h1>
                 <p class="text-slate-600 max-w-2xl mx-auto" x-text="getActiveUnit().description"></p>
@@ -119,6 +119,21 @@
                 </div>
             </div>
         </div>
+
+        <div x-show="activeUnitId === 'about'" x-cloak>
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-teal-800 mb-2">معلومات الحقيبة</h1>
+            </div>
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg max-w-2xl mx-auto text-center">
+                <p class="text-lg text-slate-700 leading-loose">
+                    <b>إعداد:</b> خالد الأيداء<br>
+                    <b>اسم المقرر:</b> تطبيقات تسويقية على الحاسب<br>
+                    <b>تخصص:</b> تسويق وابتكار<br>
+                    <b>الكلية:</b> الكلية التقنية بحائل
+                </p>
+            </div>
+        </div>
+
         <div x-show="!activeUnitId" class="text-center py-16">
              <h2 class="text-4xl font-bold text-slate-700 mb-4">أهلاً بك في الحقيبة التدريبية التفاعلية</h2>
              <p class="text-lg text-slate-500">اختر إحدى الوحدات التعليمية من الأعلى لبدء رحلتك في عالم التطبيقات التسويقية.</p>
@@ -167,14 +182,13 @@
                         { id: 'db_concepts', title: 'المفاهيم والجداول' },
                         { id: 'db_relations_queries', title: 'العلاقات والاستعلامات' },
                         { id: 'db_forms_reports', title: 'النماذج والتقارير' },
-                                        {id:'about',title:'نبذة عن المحتوى',description:`
-                    <p>تطوير الأستاذ خالد الأيداء</p>
-                    <p>محتوى تفاعلي لمقرر تطبيقات تسويقية على الحاسب</p>
-                    <p>قسم تقنية الأعمال</p>
-                    <p>تخصص التسويق والابتكار</p>
-                    <p>الكلية التقنية بحائل</p>
-                    <p>2025</p>`,topics:[]},
                     ]
+                },
+                {
+                    id: 'about',
+                    title: 'معلومات الحقيبة',
+                    description: 'معلومات حول معد الدورة والمقرر الدراسي.',
+                    topics: []
                 }
             ],
             content: {
@@ -211,7 +225,7 @@
                                     <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية للوسط الحسابي</h4>
                                     <div>
                                         <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات التاريخية (افصل بين الأرقام بفاصلة):</label>
-                                        <textarea x-model="salesDataInput" @input="updateData" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="مثال: 200, 220, 210, 230, 225, 235"></textarea>
+                                        <textarea x-model.lazy="salesDataInput" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="مثال: 200, 220, 210, 230, 225, 235"></textarea>
                                     </div>
                                     <div class="grid md:grid-cols-2 gap-6 mt-6">
                                         <div class="p-4 bg-stone-100 rounded-lg flex flex-col justify-center">
@@ -237,7 +251,7 @@
                                     <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية للمتوسط المتحرك</h4>
                                     <div>
                                         <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات التاريخية (افصل بفاصلة):</label>
-                                        <textarea x-model="salesDataInput" @input="updateData" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="200, 220, 210, 230, 225, 235"></textarea>
+                                        <textarea x-model.lazy="salesDataInput" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="200, 220, 210, 230, 225, 235"></textarea>
                                     </div>
                                     <div class="mt-4">
                                         <label for="periods" class="block font-medium mb-2">عدد الفترات للمتوسط المتحرك (n): <span x-text="periods" class="font-bold text-teal-600"></span></label>
@@ -267,19 +281,15 @@
                     interactive: `<div x-data="forecastingCalculator({ method: 'weighted_moving_average' })">
                                     <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية للمتوسط المتحرك الموزون</h4>
                                     <div>
-                                        <label class="block font-medium mb-2">بيانات المبيعات لآخر 3 فترات:</label>
-                                        <div class="grid grid-cols-3 gap-2">
-                                           <input type="number" x-model.number="data[0]" @input="calculate" placeholder="الفترة 1" class="p-2 border rounded-md text-center">
-                                           <input type="number" x-model.number="data[1]" @input="calculate" placeholder="الفترة 2" class="p-2 border rounded-md text-center">
-                                           <input type="number" x-model.number="data[2]" @input="calculate" placeholder="الفترة 3" class="p-2 border rounded-md text-center">
-                                        </div>
+                                        <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات (سيتم استخدام آخر 3 فترات فقط):</label>
+                                        <textarea x-model.lazy="salesDataInput" id="salesData" rows="2" class="w-full p-2 border rounded-md" placeholder="مثال: 200, 210, 230, 225, 235"></textarea>
                                     </div>
                                      <div class="mt-4">
-                                        <label class="block font-medium mb-2">الأوزان (للأحدث فالأقدم، يجب أن يكون المجموع 1):</label>
+                                        <label class="block font-medium mb-2">الأوزان (للأقدم ثم الأوسط ثم الأحدث، يجب أن يكون المجموع 1):</label>
                                         <div class="grid grid-cols-3 gap-2">
-                                           <input type="number" step="0.1" x-model.number="weights[2]" @input="calculate" placeholder="وزن 3" class="p-2 border rounded-md text-center">
-                                           <input type="number" step="0.1" x-model.number="weights[1]" @input="calculate" placeholder="وزن 2" class="p-2 border rounded-md text-center">
-                                           <input type="number" step="0.1" x-model.number="weights[0]" @input="calculate" placeholder="وزن 1" class="p-2 border rounded-md text-center">
+                                           <input type="number" step="0.1" x-model.number="weights[0]" @input="calculate" placeholder="وزن الأقدم" class="p-2 border rounded-md text-center">
+                                           <input type="number" step="0.1" x-model.number="weights[1]" @input="calculate" placeholder="وزن الأوسط" class="p-2 border rounded-md text-center">
+                                           <input type="number" step="0.1" x-model.number="weights[2]" @input="calculate" placeholder="وزن الأحدث" class="p-2 border rounded-md text-center">
                                         </div>
                                         <p class="text-sm mt-2" :class="{'text-red-500': totalWeight !== 1, 'text-green-600': totalWeight === 1}">مجموع الأوزان الحالي: <span x-text="totalWeight"></span></p>
                                     </div>
@@ -308,7 +318,7 @@
                                     <h4 class="text-lg font-semibold mb-4">حاسبة تفاعلية لطريقة المربعات الصغرى</h4>
                                     <div>
                                         <label for="salesData" class="block font-medium mb-2">أدخل بيانات المبيعات التاريخية (افصل بفاصلة):</label>
-                                        <textarea x-model="salesDataInput" @input="updateData" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="150, 165, 180, 200, 210"></textarea>
+                                        <textarea x-model.lazy="salesDataInput" id="salesData" rows="3" class="w-full p-2 border rounded-md" placeholder="150, 165, 180, 200, 210"></textarea>
                                     </div>
                                     <div class="grid md:grid-cols-2 gap-6 mt-6">
                                         <div class="p-4 bg-stone-100 rounded-lg space-y-3">
@@ -431,7 +441,7 @@
                                     </div>
                                     <div class="mb-4">
                                         <label class="block font-medium mb-2">مبيعات المنافسين (افصل بين أرقام مبيعات كل منافس بفاصلة):</label>
-                                        <textarea x-model="competitorSalesInput" @input="updateCompetitors" rows="2" class="w-full p-2 border rounded-md" placeholder="مثال: 2500000, 1000000"></textarea>
+                                        <textarea x-model.lazy="competitorSalesInput" id="competitorSales" rows="2" class="w-full p-2 border rounded-md" placeholder="مثال: 2500000, 1000000"></textarea>
                                     </div>
                                     <div class="grid md:grid-cols-2 gap-6 mt-6 border-t pt-4">
                                         <div class="p-4 bg-stone-100 rounded-lg space-y-3">
@@ -636,7 +646,13 @@
 
                 setActiveUnit(unitId) {
                     this.activeUnitId = unitId;
-                    this.setActiveTopic(this.getActiveUnit().topics[0].id);
+                    const activeUnit = this.getActiveUnit();
+                    if (activeUnit.topics && activeUnit.topics.length > 0) {
+                        this.setActiveTopic(activeUnit.topics[0].id);
+                    } else {
+                        this.activeTopicId = null;
+                        this.destroyChart();
+                    }
                 },
 
                 setActiveTopic(topicId) {
@@ -722,7 +738,7 @@
             return {
                 method: config.method,
                 salesDataInput: '200, 220, 210, 230, 225, 235',
-                data: [200, 220, 210, 230, 225, 235],
+                data: [],
                 periods: 3,
                 weights: [0.2, 0.3, 0.5],
                 forecastResult: '...',
@@ -730,15 +746,16 @@
                 chartInstance: null,
                 
                 get totalWeight() {
-                    return this.weights.reduce((sum, w) => sum + Number(w), 0).toFixed(2);
+                    return this.weights.reduce((sum, w) => sum + parseFloat(w || 0), 0).toFixed(2);
                 },
                 
                 init() {
                     if(this.method === 'weighted_moving_average') {
-                       this.data = [230, 225, 235];
+                       this.salesDataInput = '230, 225, 235';
                     } else if (this.method === 'least_squares') {
                         this.salesDataInput = '150, 165, 180, 200, 210';
                     }
+                    this.$watch('salesDataInput', () => this.updateData());
                     this.updateData();
                 },
 
@@ -752,7 +769,7 @@
                 },
                 
                 calculate() {
-                    if (this.data.length === 0) {
+                    if (this.data.length === 0 && this.method !== 'weighted_moving_average') {
                         this.forecastResult = 'أدخل بيانات';
                         this.destroyChart();
                         return;
@@ -774,11 +791,17 @@
                             }
                             break;
                         case 'weighted_moving_average':
-                            if(this.totalWeight != 1) {
-                                this.forecastResult = 'الأوزان يجب أن تساوي 1';
+                            const relevantData = this.data.slice(-3);
+                            if (relevantData.length < 3) {
+                                this.forecastResult = 'أدخل 3 قيم على الأقل';
+                                this.destroyChart();
                                 return;
                             }
-                             result = this.data.reduce((sum, val, i) => sum + val * (this.weights[i] || 0), 0);
+                            if(this.totalWeight != 1) {
+                                this.forecastResult = 'مجموع الأوزان يجب أن يساوي 1';
+                                return;
+                            }
+                             result = relevantData.reduce((sum, val, i) => sum + val * (this.weights[i] || 0), 0);
                             break;
                          case 'least_squares':
                             const n = this.data.length;
@@ -820,7 +843,7 @@
                         tension: 0.1
                     }];
 
-                    if(this.method === 'least_squares') {
+                    if(this.method === 'least_squares' && this.data.length > 1 && this.equation) {
                         const trendlineData = this.data.map((_, i) => {
                            const [a_str, b_str] = this.equation.replace('Y = ','').split(' + ');
                            const a = parseFloat(a_str);
@@ -892,12 +915,15 @@
                 method: config.method,
                 ourSales: 5000000,
                 competitorSalesInput: '15000000, 5000000',
-                competitorSales: [15000000, 5000000],
+                competitorSales: [],
                 largestCompetitorSales: 25000000,
                 chartInstance: null,
                 
                 init() {
-                    this.calculate();
+                    this.$watch('competitorSalesInput', () => this.updateCompetitors());
+                    this.$watch('ourSales', () => this.calculate());
+                    this.$watch('largestCompetitorSales', () => this.calculate());
+                    this.updateCompetitors();
                 },
 
                 updateCompetitors() {
@@ -906,7 +932,8 @@
                 },
 
                 get totalMarketSales() {
-                    return this.ourSales + this.competitorSales.reduce((sum, sales) => sum + sales, 0);
+                    const ourSalesNum = Number(this.ourSales) || 0;
+                    return ourSalesNum + this.competitorSales.reduce((sum, sales) => sum + sales, 0);
                 },
 
                 get ourMarketShare() {
@@ -957,7 +984,11 @@
                                                 label += ': ';
                                             }
                                             if (context.parsed !== null) {
-                                               const percentage = (context.parsed / context.chart.getDatasetMeta(0).total * 100).toFixed(1);
+                                               const chart = context.chart;
+                                               const dataset = chart.data.datasets[context.datasetIndex];
+                                               const total = dataset.data.reduce((previousValue, currentValue) => previousValue + currentValue, 0);
+                                               const currentValue = dataset.data[context.dataIndex];
+                                               const percentage = total > 0 ? ((currentValue / total) * 100).toFixed(1) : 0;
                                                label += percentage + '%';
                                             }
                                             return label;
